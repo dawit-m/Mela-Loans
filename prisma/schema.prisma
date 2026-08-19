@@ -1,0 +1,90 @@
+// ============================================================
+// Loan Matching Telegram Bot — Prisma Schema
+// Matches schema.sql — use this if building with Prisma ORM
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum InstitutionType {
+  bank
+  microfinance
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  rejected
+}
+
+model Institution {
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(150)
+  type          InstitutionType
+  phone         String?         @db.VarChar(30)
+  address       String?         @db.VarChar(255)
+  contactPerson String?         @map("contact_person") @db.VarChar(100)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  loanProducts  LoanProduct[]
+
+  @@map("institutions")
+}
+
+model LoanProduct {
+  id                 Int         @id @default(autoincrement())
+  institutionId      Int         @map("institution_id")
+  institution        Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  name               String      @db.VarChar(150)
+  eligibleStatus     String[]    @map("eligible_status")   // e.g. ["employed", "business"]
+  minIncome          Decimal?    @map("min_income") @db.Decimal(12, 2)
+  amountMin          Decimal     @map("amount_min") @db.Decimal(12, 2)
+  amountMax          Decimal     @map("amount_max") @db.Decimal(12, 2)
+
+  requiresGuarantor  Boolean     @default(false) @map("requires_guarantor")
+  requiredDocuments  String?     @map("required_documents")
+  interestRate       String?     @map("interest_rate") @db.VarChar(50)
+  repaymentTerm      String?     @map("repayment_term") @db.VarChar(50)
+
+  isActive           Boolean     @default(true) @map("is_active")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  @@index([institutionId])
+  @@index([amountMin, amountMax])
+  @@map("loan_products")
+}
+
+model UserSession {
+  id                       Int           @id @default(autoincrement())
+  telegramUserId           BigInt        @map("telegram_user_id")
+  language                 String        @default("en") @db.VarChar(10)
+  fullName                 String?       @map("full_name") @db.VarChar(150)
+  status                   String        @db.VarChar(30)   // 'employed' | 'student' | 'unemployed' | 'business'
+  monthlyIncome            Decimal?      @map("monthly_income") @db.Decimal(12, 2)
+  desiredAmountMin         Decimal       @map("desired_amount_min") @db.Decimal(12, 2)
+  desiredAmountMax         Decimal       @map("desired_amount_max") @db.Decimal(12, 2)
+  paymentStatus            PaymentStatus @default(pending) @map("payment_status")
+  paymentScreenshotFileId  String?       @map("payment_screenshot_file_id") @db.VarChar(255)
+  createdAt                DateTime      @default(now()) @map("created_at")
+
+  @@index([telegramUserId])
+  @@map("user_sessions")
+}
+
+// Used by @grammyjs/storage-prisma to persist grammY session data
+// (currently just the user's chosen language + in-progress conversation
+// state) so it survives server restarts instead of living only in memory.
+model Session {
+  key   String @id
+  value String
+
+  @@map("bot_sessions")
+}
