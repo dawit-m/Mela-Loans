@@ -1,4 +1,4 @@
-# Mela Loan — Telegram Loan Matching Bot
+# Telegram Loan Matching Bot
 
 A Telegram bot that helps people in Ethiopia find loan products they actually
 qualify for. Users answer a short questionnaire (employment status, income,
